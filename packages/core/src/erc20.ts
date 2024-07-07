@@ -98,6 +98,10 @@ export function buildERC20(opts: ERC20Options): Contract {
     addMintable(c, access);
   }
 
+  if (allOpts.blocklist) {
+    addBlocklist(c, access);
+  }
+
   // Note: Votes requires Permit
   if (allOpts.permit || allOpts.votes) {
     addPermit(c, allOpts.name);
@@ -130,6 +134,18 @@ function addBase(c: ContractBuilder, name: string, symbol: string) {
   );
 
   c.addOverride(ERC20, functions._update);
+}
+
+function addBlocklist(c: ContractBuilder, access: Access) {
+  c.addVariable('mapping(address => bool) public blocked;');
+
+  requireAccessControl(c, blocklistFunctions.block, access, 'BLOCKER', 'blocker');
+  c.addFunctionCode('blocked[user] = true;', blocklistFunctions.block);
+
+  requireAccessControl(c, blocklistFunctions.unblock, access, 'BLOCKER', 'blocker');
+  c.addFunctionCode('blocked[user] = false;', blocklistFunctions.unblock);
+
+  c.addFunctionCode('require(!blocked[from], "ERC20Blacklist: Blocked");', functions._update);
 }
 
 function addPausableExtension(c: ContractBuilder, access: Access) {
@@ -250,4 +266,17 @@ const functions = defineFunctions({
     returns: ['uint256'],
     mutability: 'view' as const,
   }
+});
+
+
+const blocklistFunctions = defineFunctions({
+  block: {
+    kind: 'public' as const,
+    args: [{ name: 'user', type: 'address' }],
+  },
+
+  unblock: {
+    kind: 'public' as const,
+    args: [{ name: 'user', type: 'address' }],
+  },
 });
