@@ -102,6 +102,10 @@ export function buildERC20(opts: ERC20Options): Contract {
     addBlocklist(c, access);
   }
 
+  if (allOpts.allowlist) {
+    addAllowlist(c, access);
+  }
+
   // Note: Votes requires Permit
   if (allOpts.permit || allOpts.votes) {
     addPermit(c, allOpts.name);
@@ -139,13 +143,25 @@ function addBase(c: ContractBuilder, name: string, symbol: string) {
 function addBlocklist(c: ContractBuilder, access: Access) {
   c.addVariable('mapping(address => bool) public blocked;');
 
-  requireAccessControl(c, blocklistFunctions.block, access, 'BLOCKER', 'blocker');
-  c.addFunctionCode('blocked[user] = true;', blocklistFunctions.block);
+  requireAccessControl(c, functions.block, access, 'BLOCKER', 'blocker');
+  c.addFunctionCode('blocked[user] = true;', functions.block);
 
-  requireAccessControl(c, blocklistFunctions.unblock, access, 'BLOCKER', 'blocker');
-  c.addFunctionCode('blocked[user] = false;', blocklistFunctions.unblock);
+  requireAccessControl(c, functions.unblock, access, 'BLOCKER', 'blocker');
+  c.addFunctionCode('blocked[user] = false;', functions.unblock);
 
   c.addFunctionCode('require(!blocked[from], "ERC20Blacklist: Blocked");', functions._update);
+}
+
+function addAllowlist(c: ContractBuilder, access: Access) {
+  c.addVariable('mapping(address => bool) public allowed;');
+
+  requireAccessControl(c, functions.allow, access, 'ALLOWER', 'allower');
+  c.addFunctionCode('allowed[user] = true;', functions.allow);
+
+  requireAccessControl(c, functions.unallow, access, 'ALLOWER', 'allower');
+  c.addFunctionCode('allowed[user] = false;', functions.unallow);
+
+  c.addFunctionCode('require(allowed[from] && allowed[to], "ERC20Blacklist: Unallowed");', functions._update);
 }
 
 function addPausableExtension(c: ContractBuilder, access: Access) {
@@ -265,17 +281,24 @@ const functions = defineFunctions({
     ],
     returns: ['uint256'],
     mutability: 'view' as const,
-  }
-});
+  },
 
-
-const blocklistFunctions = defineFunctions({
   block: {
     kind: 'public' as const,
     args: [{ name: 'user', type: 'address' }],
   },
 
   unblock: {
+    kind: 'public' as const,
+    args: [{ name: 'user', type: 'address' }],
+  },
+
+  allow: {
+    kind: 'public' as const,
+    args: [{ name: 'user', type: 'address' }],
+  },
+
+  unallow: {
     kind: 'public' as const,
     args: [{ name: 'user', type: 'address' }],
   },
