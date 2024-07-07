@@ -16,6 +16,10 @@ export interface ERC20Options extends CommonOptions {
   premint?: string;
   mintable?: boolean;
   permit?: boolean;
+  blocklist?: boolean;
+  allowlist?: boolean;
+  custodian?: boolean;
+  limit?: boolean;
   /**
    * Whether to keep track of historical balances for voting in on-chain governance, and optionally specify the clock mode.
    * Setting `true` is equivalent to 'blocknumber'. Setting a clock mode implies voting is enabled.
@@ -32,6 +36,10 @@ export const defaults: Required<ERC20Options> = {
   premint: '0',
   mintable: false,
   permit: true,
+  blocklist: false,
+  allowlist: false,
+  custodian: false,
+  limit: false,
   votes: false,
   flashmint: false,
   access: commonDefaults.access,
@@ -48,6 +56,10 @@ function withDefaults(opts: ERC20Options): Required<ERC20Options> {
     premint: opts.premint || defaults.premint,
     mintable: opts.mintable ?? defaults.mintable,
     permit: opts.permit ?? defaults.permit,
+    blocklist: opts.blocklist ?? defaults.blocklist,
+    allowlist: opts.allowlist ?? defaults.allowlist,
+    custodian: opts.custodian ?? defaults.custodian,
+    limit: opts.limit ?? defaults.limit,
     votes: opts.votes ?? defaults.votes,
     flashmint: opts.flashmint ?? defaults.flashmint,
   };
@@ -58,7 +70,7 @@ export function printERC20(opts: ERC20Options = defaults): string {
 }
 
 export function isAccessControlRequired(opts: Partial<ERC20Options>): boolean {
-  return opts.mintable || opts.pausable || opts.upgradeable === 'uups';
+  return opts.mintable || opts.blocklist || opts.allowlist || opts.custodian || opts.limit || opts.pausable || opts.upgradeable === 'uups';
 }
 
 export function buildERC20(opts: ERC20Options): Contract {

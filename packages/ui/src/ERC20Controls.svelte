@@ -91,6 +91,44 @@
 </section>
 
 <section class="controls-section">
+  <h1>Tokenization</h1>
+
+  <div class="checkbox-group">
+    <label class:checked={opts.blocklist}>
+      <input type="checkbox" bind:checked={opts.blocklist}>
+      Blocklist
+      <HelpTooltip>
+        Privileged accounts will be able to block certain addresses from interacting.
+      </HelpTooltip>
+    </label>
+
+    <label class:checked={opts.allowlist}>
+      <input type="checkbox" bind:checked={opts.allowlist}>
+      Allowlist
+      <HelpTooltip>
+        Privileged accounts will be able to allow certain addresses to interact.
+      </HelpTooltip>
+    </label>
+
+    <label class:checked={opts.custodian}>
+      <input type="checkbox" bind:checked={opts.custodian}>
+      Custodian
+      <HelpTooltip>
+        Privileged accounts will be able to act on behalf of users.
+      </HelpTooltip>
+    </label>
+
+    <label class:checked={opts.limit}>
+      <input type="checkbox" bind:checked={opts.limit}>
+      Limits
+      <HelpTooltip>
+        Token activity is limited to certain amounts per period.
+      </HelpTooltip>
+    </label>
+  </div>
+</section>
+
+<section class="controls-section">
   <h1>
     <!-- svelte-ignore a11y-label-has-associated-control -->
     <label class="flex items-center tooltip-container pr-2">
