@@ -106,6 +106,10 @@ export function buildERC20(opts: ERC20Options): Contract {
     addAllowlist(c, access);
   }
 
+  if (allOpts.custodian) {
+    addCustodian(c, access);
+  }
+
   // Note: Votes requires Permit
   if (allOpts.permit || allOpts.votes) {
     addPermit(c, allOpts.name);
@@ -162,6 +166,11 @@ function addAllowlist(c: ContractBuilder, access: Access) {
   c.addFunctionCode('allowed[user] = false;', functions.unallow);
 
   c.addFunctionCode('require(allowed[from] && allowed[to], "ERC20Blacklist: Unallowed");', functions._update);
+}
+
+function addCustodian(c: ContractBuilder, access: Access) {
+  requireAccessControl(c, functions.update, access, 'CUSTODIAN', 'custodian');
+  c.addFunctionCode('_update(from, to, value);', functions.update);
 }
 
 function addPausableExtension(c: ContractBuilder, access: Access) {
@@ -301,5 +310,14 @@ const functions = defineFunctions({
   unallow: {
     kind: 'public' as const,
     args: [{ name: 'user', type: 'address' }],
+  },
+
+  update: {
+    kind: 'public' as const,
+    args: [
+      { name: 'from', type: 'address' },
+      { name: 'to', type: 'address' },
+      { name: 'value', type: 'uint256' },
+    ],
   },
 });
