@@ -19,7 +19,7 @@ export interface ERC20Options extends CommonOptions {
   blocklist?: boolean;
   allowlist?: boolean;
   custodian?: boolean;
-  limit?: boolean;
+  limit?: string;
   /**
    * Whether to keep track of historical balances for voting in on-chain governance, and optionally specify the clock mode.
    * Setting `true` is equivalent to 'blocknumber'. Setting a clock mode implies voting is enabled.
@@ -39,7 +39,7 @@ export const defaults: Required<ERC20Options> = {
   blocklist: false,
   allowlist: false,
   custodian: false,
-  limit: false,
+  limit: '0',
   votes: false,
   flashmint: false,
   access: commonDefaults.access,
@@ -59,7 +59,7 @@ function withDefaults(opts: ERC20Options): Required<ERC20Options> {
     blocklist: opts.blocklist ?? defaults.blocklist,
     allowlist: opts.allowlist ?? defaults.allowlist,
     custodian: opts.custodian ?? defaults.custodian,
-    limit: opts.limit ?? defaults.limit,
+    limit: opts.limit || defaults.limit,
     votes: opts.votes ?? defaults.votes,
     flashmint: opts.flashmint ?? defaults.flashmint,
   };
@@ -110,6 +110,10 @@ export function buildERC20(opts: ERC20Options): Contract {
     addCustodian(c, access);
   }
 
+  if (allOpts.limit) {
+    addLimit(c, allOpts.limit);
+  }
+
   // Note: Votes requires Permit
   if (allOpts.permit || allOpts.votes) {
     addPermit(c, allOpts.name);
@@ -147,13 +151,13 @@ function addBase(c: ContractBuilder, name: string, symbol: string) {
 function addBlocklist(c: ContractBuilder, access: Access) {
   c.addVariable('mapping(address => bool) public blocked;');
 
-  requireAccessControl(c, functions.block, access, 'BLOCKER', 'blocker');
-  c.addFunctionCode('blocked[user] = true;', functions.block);
+  requireAccessControl(c, functions.blockUser, access, 'BLOCKER', 'blocker');
+  c.addFunctionCode('blocked[user] = true;', functions.blockUser);
 
-  requireAccessControl(c, functions.unblock, access, 'BLOCKER', 'blocker');
-  c.addFunctionCode('blocked[user] = false;', functions.unblock);
+  requireAccessControl(c, functions.unblockUser, access, 'BLOCKER', 'blocker');
+  c.addFunctionCode('blocked[user] = false;', functions.unblockUser);
 
-  c.addFunctionCode('require(!blocked[from], "ERC20Blacklist: Blocked");', functions._update);
+  c.addFunctionCode('if (from != address(0)) require(!blocked[from], "ERC20Blacklist: Blocked");', functions._update);
 }
 
 function addAllowlist(c: ContractBuilder, access: Access) {
@@ -165,7 +169,7 @@ function addAllowlist(c: ContractBuilder, access: Access) {
   requireAccessControl(c, functions.unallow, access, 'ALLOWER', 'allower');
   c.addFunctionCode('allowed[user] = false;', functions.unallow);
 
-  c.addFunctionCode('require(allowed[from] && allowed[to], "ERC20Blacklist: Unallowed");', functions._update);
+  c.addFunctionCode('if (from != address(0) && to != address(0)) require(allowed[from] && allowed[to], "ERC20Allowlist Unallowed");', functions._update);
 }
 
 function addCustodian(c: ContractBuilder, access: Access) {
@@ -206,6 +210,31 @@ function addPremint(c: ContractBuilder, amount: string) {
       const units = integer + decimals + zeroes;
       const exp = decimalPlace <= 0 ? 'decimals()' : `(decimals() - ${decimalPlace})`;
       c.addConstructorCode(`_mint(msg.sender, ${units} * 10 ** ${exp});`);
+    }
+  }
+}
+
+function addLimit(c: ContractBuilder, amount: string) {
+  const m = amount.match(premintPattern);
+  if (m) {
+    const integer = m[1]?.replace(/^0+/, '') ?? '';
+    const decimals = m[2]?.replace(/0+$/, '') ?? '';
+    const exponent = Number(m[3] ?? 0);
+
+    if (Number(integer + decimals) > 0) {
+      const decimalPlace = decimals.length - exponent;
+      const zeroes = new Array(Math.max(0, -decimalPlace)).fill('0').join('');
+      const units = integer + decimals + zeroes;
+      const exp = decimalPlace <= 0 ? 'decimals()' : `(decimals() - ${decimalPlace})`;
+
+      c.addVariable('uint256 public immutable TOKEN_LIMIT;');
+      c.addVariable('mapping(address => TransferRecord) private records;');
+      c.addVariable('struct TransferRecord { uint256 amount; uint256 timestamp; }');
+
+      c.addConstructorCode(`TOKEN_LIMIT = ${units} * 10 ** ${exp};`);
+      c.addFunctionCode('if (from != address(0)) _limit(from, value);', functions._update);
+
+      c.setFunctionBody(['TransferRecord storage record = records[account];', 'if (block.timestamp - record.timestamp >= 1 days) {','    record.amount = value;', '    record.timestamp = block.timestamp;', '} else {', '    uint256 newTotal = record.amount + value;', '    require(newTotal <= TOKEN_LIMIT, "ERC20Limit: Limited");', '    record.amount = newTotal;', '}'], functions._limit);
     }
   }
 }
@@ -292,12 +321,12 @@ const functions = defineFunctions({
     mutability: 'view' as const,
   },
 
-  block: {
+  blockUser: {
     kind: 'public' as const,
     args: [{ name: 'user', type: 'address' }],
   },
 
-  unblock: {
+  unblockUser: {
     kind: 'public' as const,
     args: [{ name: 'user', type: 'address' }],
   },
@@ -317,6 +346,14 @@ const functions = defineFunctions({
     args: [
       { name: 'from', type: 'address' },
       { name: 'to', type: 'address' },
+      { name: 'value', type: 'uint256' },
+    ],
+  },
+
+  _limit: {
+    kind: 'internal' as const,
+    args: [
+      { name: 'account', type: 'address' },
       { name: 'value', type: 'uint256' },
     ],
   },
