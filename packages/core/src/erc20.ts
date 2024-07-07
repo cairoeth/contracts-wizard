@@ -70,7 +70,7 @@ export function printERC20(opts: ERC20Options = defaults): string {
 }
 
 export function isAccessControlRequired(opts: Partial<ERC20Options>): boolean {
-  return opts.mintable || opts.blocklist || opts.allowlist || opts.custodian || opts.limit || opts.pausable || opts.upgradeable === 'uups';
+  return opts.mintable || opts.blocklist || opts.allowlist || opts.custodian || opts.pausable || opts.upgradeable === 'uups';
 }
 
 export function buildERC20(opts: ERC20Options): Contract {
@@ -169,7 +169,7 @@ function addAllowlist(c: ContractBuilder, access: Access) {
   requireAccessControl(c, functions.unallow, access, 'ALLOWER', 'allower');
   c.addFunctionCode('allowed[user] = false;', functions.unallow);
 
-  c.addFunctionCode('if (from != address(0) && to != address(0)) require(allowed[from] && allowed[to], "ERC20Allowlist Unallowed");', functions._update);
+  c.addFunctionCode('if (from != address(0) && to != address(0)) require(allowed[from] && allowed[to], "ERC20Allowlist: Unallowed");', functions._update);
 }
 
 function addCustodian(c: ContractBuilder, access: Access) {
