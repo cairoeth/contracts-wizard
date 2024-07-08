@@ -111,7 +111,14 @@
   <h1>Tokenization</h1>
 
   <div class="checkbox-group">
-    <label class:checked={opts.restriction === "blocklist"}>
+    <label>
+      <ToggleRadio bind:value={opts.restriction} defaultValue="blocklist" />
+      Restriction
+      <HelpTooltip>
+        Privileged accounts will be able to emit new tokens.
+      </HelpTooltip>
+    </label>
+    <label class:checked={opts.restriction === "blocklist"} class="subcontrol">
       <input type="radio" bind:group={opts.restriction} value="blocklist" />
       Blocklist
       <HelpTooltip>
@@ -119,15 +126,13 @@
         interacting.
       </HelpTooltip>
     </label>
-
-    <label class:checked={opts.restriction === "allowlist"}>
+    <label class:checked={opts.restriction === "allowlist"} class="subcontrol">
       <input type="radio" bind:group={opts.restriction} value="allowlist" />
       Allowlist
       <HelpTooltip>
         Privileged accounts will be able to allow certain addresses to interact.
       </HelpTooltip>
     </label>
-
     <label class:checked={opts.custodian}>
       <input type="checkbox" bind:checked={opts.custodian} />
       Custodian

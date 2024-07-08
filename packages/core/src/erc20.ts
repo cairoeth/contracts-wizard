@@ -164,7 +164,7 @@ function addBlocklist(c: ContractBuilder, access: Access) {
   requireAccessControl(c, functions.unblockUser, access, 'BLOCKER', 'blocker');
   c.addFunctionCode('blocked[user] = false;', functions.unblockUser);
 
-  c.addFunctionCode('if (from != address(0)) require(!blocked[from], "ERC20Blacklist: Blocked");', functions._update);
+  c.addFunctionCode('if (from != address(0)) require(!blocked[from], "ERC20Blocklist: Blocked");', functions._update);
 }
 
 function addAllowlist(c: ContractBuilder, access: Access) {
