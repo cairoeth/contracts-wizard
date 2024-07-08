@@ -115,7 +115,7 @@
       <ToggleRadio bind:value={opts.restriction} defaultValue="blocklist" />
       Restriction
       <HelpTooltip>
-        Privileged accounts will be able to emit new tokens.
+        Restrict users for compliance and legal reasons.
       </HelpTooltip>
     </label>
     <label class:checked={opts.restriction === "blocklist"} class="subcontrol">
