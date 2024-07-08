@@ -1,9 +1,10 @@
 import type { ERC20Options } from '../erc20';
+import { restrictionOptions } from '../erc20';
 import { accessOptions } from '../set-access-control';
 import { clockModeOptions } from '../set-clock-mode';
 import { infoOptions } from '../set-info';
 import { upgradeableOptions } from '../set-upgradeable';
-import { generateAlternatives } from './alternatives';
+import { generateAlternatives } from './alternatives'; 
 
 const booleans = [true, false];
 
@@ -14,8 +15,7 @@ const blueprint = {
   pausable: booleans,
   mintable: booleans,
   permit: booleans,
-  blocklist: booleans,
-  allowlist: booleans,
+  restriction: [ ...booleans, ...restrictionOptions ] as const,
   custodian: booleans,
   limit: ['0'],
   votes: [ ...booleans, ...clockModeOptions ] as const,

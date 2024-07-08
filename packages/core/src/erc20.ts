@@ -8,6 +8,10 @@ import { setInfo } from './set-info';
 import { printContract } from './print';
 import { ClockMode, clockModeDefault, setClockMode } from './set-clock-mode';
 
+export const restrictionOptions = ['blocklist', 'allowlist'] as const;
+export const restrictionDefault = 'blocklist' as const;
+export type Restriction = typeof restrictionOptions[number];
+
 export interface ERC20Options extends CommonOptions {
   name: string;
   symbol: string;
@@ -16,8 +20,7 @@ export interface ERC20Options extends CommonOptions {
   premint?: string;
   mintable?: boolean;
   permit?: boolean;
-  blocklist?: boolean;
-  allowlist?: boolean;
+  restriction?: boolean | Restriction;
   custodian?: boolean;
   limit?: string;
   /**
@@ -36,8 +39,7 @@ export const defaults: Required<ERC20Options> = {
   premint: '0',
   mintable: false,
   permit: true,
-  blocklist: false,
-  allowlist: false,
+  restriction: false,
   custodian: false,
   limit: '0',
   votes: false,
@@ -56,8 +58,7 @@ function withDefaults(opts: ERC20Options): Required<ERC20Options> {
     premint: opts.premint || defaults.premint,
     mintable: opts.mintable ?? defaults.mintable,
     permit: opts.permit ?? defaults.permit,
-    blocklist: opts.blocklist ?? defaults.blocklist,
-    allowlist: opts.allowlist ?? defaults.allowlist,
+    restriction: opts.restriction ?? defaults.restriction,
     custodian: opts.custodian ?? defaults.custodian,
     limit: opts.limit || defaults.limit,
     votes: opts.votes ?? defaults.votes,
@@ -70,7 +71,7 @@ export function printERC20(opts: ERC20Options = defaults): string {
 }
 
 export function isAccessControlRequired(opts: Partial<ERC20Options>): boolean {
-  return opts.mintable || opts.blocklist || opts.allowlist || opts.custodian || opts.pausable || opts.upgradeable === 'uups';
+  return opts.mintable || opts.custodian || opts.pausable || opts.upgradeable === 'uups';
 }
 
 export function buildERC20(opts: ERC20Options): Contract {
@@ -98,12 +99,9 @@ export function buildERC20(opts: ERC20Options): Contract {
     addMintable(c, access);
   }
 
-  if (allOpts.blocklist) {
-    addBlocklist(c, access);
-  }
-
-  if (allOpts.allowlist) {
-    addAllowlist(c, access);
+  if (allOpts.restriction) {
+    const restriction = allOpts.restriction === true ? restrictionDefault : allOpts.restriction;
+    addRestriction(c, access, restriction);
   }
 
   if (allOpts.custodian) {
@@ -148,7 +146,16 @@ function addBase(c: ContractBuilder, name: string, symbol: string) {
   c.addOverride(ERC20, functions._update);
 }
 
+function addRestriction(c: ContractBuilder, access: Access, restriction: Restriction) {
+  if (restriction === 'blocklist') {
+    addBlocklist(c, access);
+  } else {
+    addAllowlist(c, access);
+  }
+}
+
 function addBlocklist(c: ContractBuilder, access: Access) {
+  
   c.addVariable('mapping(address => bool) public blocked;');
 
   requireAccessControl(c, functions.blockUser, access, 'BLOCKER', 'blocker');

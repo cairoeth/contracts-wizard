@@ -111,8 +111,8 @@
   <h1>Tokenization</h1>
 
   <div class="checkbox-group">
-    <label class:checked={opts.blocklist}>
-      <input type="checkbox" bind:checked={opts.blocklist} />
+    <label class:checked={opts.restriction === "blocklist"}>
+      <input type="radio" bind:group={opts.restriction} value="blocklist" />
       Blocklist
       <HelpTooltip>
         Privileged accounts will be able to block certain addresses from
@@ -120,8 +120,8 @@
       </HelpTooltip>
     </label>
 
-    <label class:checked={opts.allowlist}>
-      <input type="checkbox" bind:checked={opts.allowlist} />
+    <label class:checked={opts.restriction === "allowlist"}>
+      <input type="radio" bind:group={opts.restriction} value="allowlist" />
       Allowlist
       <HelpTooltip>
         Privileged accounts will be able to allow certain addresses to interact.
